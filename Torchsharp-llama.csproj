@@ -2,20 +2,17 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>LLAMA</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <LangVersion>preview</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FluentAssertions" Version="7.0.0-alpha.3" />
     <PackageReference Include="Microsoft.ML.Tokenizers" Version="0.21.1" />
-    <PackageReference Include="TorchSharp" Version="0.101.5" />
-    <!-- <PackageReference Include="TorchSharp-cpu" Version="0.101.5" /> -->
-    <!-- <PackageReference Include="TorchSharp-cuda-linux" Version="0.100.7" /> -->
-    <PackageReference Include="TorchSharp.PyBridge" Version="1.2.0" />
+    <PackageReference Include="TorchSharp" Version="0.102.7" />
+    <PackageReference Include="TorchSharp-cpu" Version="0.102.7" />
+    <PackageReference Include="TorchSharp.PyBridge" Version="1.4.1" />
   </ItemGroup>
 
   <ItemGroup>

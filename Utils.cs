@@ -1,40 +1,10 @@
-﻿using FluentAssertions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TorchSharp.Modules;
-using TorchSharp;
+﻿using TorchSharp;
 using static TorchSharp.torch;
 
 namespace LLAMA;
 
 public static class Utils
 {
-    public static void Peek(this Tensor tensor, string id, int n = 10)
-    {
-        var device = tensor.device;
-        tensor = tensor.cpu();
-        var shapeString = string.Join(',', tensor.shape);
-        var dataString = string.Join(',', tensor.reshape(-1)[..n].to_type(ScalarType.Float32).data<float>().ToArray());
-        var tensor_1d = tensor.reshape(-1);
-        var tensor_index = torch.arange(tensor_1d.shape[0], dtype: ScalarType.Float32).to(tensor_1d.device).sqrt();
-        var avg = (tensor_1d * tensor_index).sum();
-        avg = avg / tensor_1d.sum();
-        Console.WriteLine($"{id}: sum: {avg.ToSingle()}  dtype: {tensor.dtype} shape: [{shapeString}] device: {device} has grad? {tensor.requires_grad}");
-    }
-
-    public static void Peek(this nn.Module model)
-    {
-        var state_dict = model.state_dict();
-        // preview state_dict
-        foreach (var (key, value) in state_dict.OrderBy(x => x.Key))
-        {
-            value.Peek(key);
-        }
-    }
-
     public static Tensor ApplyRotaryEmbeddings(Tensor input, Tensor freqsComplex)
     {
         // Separate the last dimension pairs of two values, representing the real and imaginary parts of the complex number
@@ -59,7 +29,6 @@ public static class Utils
         // (B, Seq_Len, H, Head_Dim/2, 2) -> (B, Seq_Len, H, Head_Dim)
         var rotated_reshaped = rotated.reshape(rotated.shape[0], rotated.shape[1], rotated.shape[2], -1);
 
-        input.shape.Should().BeEquivalentTo(rotated_reshaped.shape);
         return rotated_reshaped.type_as(input);
     }
 
