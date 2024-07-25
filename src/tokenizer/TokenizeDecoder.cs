@@ -1,6 +1,8 @@
+using Microsoft.ML.Tokenizers;
+
 namespace LLAMA;
 
-public class TokenizeDecoder : Microsoft.ML.Tokenizers.TokenizerDecoder
+public class TokenizeDecoder : TokenizerDecoder
 {
     private const char spaceReplacement = '▁';
     private string bos = "<s>";

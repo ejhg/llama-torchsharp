@@ -9,7 +9,7 @@ public class FeedForward : torch.nn.Module<torch.Tensor, torch.Tensor>
     private Linear w2;
     private Linear w3;
 
-    public FeedForward (JsonModelArgs args)
+    public FeedForward (ConfigurationParams args)
         : base (nameof(FeedForward)) {
         var hiddenDim = args.dim * 4;
         hiddenDim = 2 * hiddenDim / 3;

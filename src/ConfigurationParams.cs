@@ -2,7 +2,7 @@ using TorchSharp;
 
 namespace LLAMA;
 
-public class JsonModelArgs
+public class ConfigurationParams
 {
     public int dim { get; set; } = 4096;
 

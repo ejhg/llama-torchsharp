@@ -9,7 +9,7 @@ public class EncoderBlock : torch.nn.Module<torch.Tensor, int, torch.Tensor, tor
     private RMSNorm attention_norm;
     private RMSNorm ffn_norm;
 
-    public EncoderBlock (JsonModelArgs args)
+    public EncoderBlock (ConfigurationParams args)
         : base (nameof(EncoderBlock)) {
         this.attention = new SelfAttention (args);
         this.feed_forward = new FeedForward (args);

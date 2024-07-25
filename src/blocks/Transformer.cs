@@ -7,7 +7,7 @@ namespace LLAMA;
 
 public class Transformer : nn.Module<Tensor, int, Tensor>
 {
-    private JsonModelArgs args;
+    private ConfigurationParams args;
     private int vocabSize;
     private int nLayers;
     private Embedding tok_embeddings;
@@ -16,7 +16,7 @@ public class Transformer : nn.Module<Tensor, int, Tensor>
     private Linear output;
     private Tensor freqs_compex;
 
-    public Transformer (JsonModelArgs args)
+    public Transformer (ConfigurationParams args)
         : base (nameof(Transformer)) {
         Debug.Assert (args.vocab_size > 0, "vocab size must be set");
 
@@ -37,11 +37,10 @@ public class Transformer : nn.Module<Tensor, int, Tensor>
         this.freqs_compex = PrecomputeThetaPosFrequencies (args.dim / args.n_heads, args.max_seq_len * 2);
     }
 
-    public JsonModelArgs Args => this.args;
+    public ConfigurationParams Args => this.args;
 
     public override Tensor forward (Tensor tokens, int startPos) {
         // (B, Seq_Len) -> (B, Seq_Len, Dim)
-        var batch = tokens.shape[0];
         var seqLen = (int)tokens.shape[1];
 
         // print tokens shape
@@ -52,16 +51,16 @@ public class Transformer : nn.Module<Tensor, int, Tensor>
 
         if (seqLen > 1) {
             var device = h.device;
-            mask = torch.full (new long[] {
+            mask = full (new long[] {
                 seqLen,
                 seqLen
             }, dtype: ScalarType.Float32, value: float.NegativeInfinity, device: device);
             // (B, Seq_Len) -> (B, Seq_Len, Seq_Len)
-            mask = torch.triu (mask, diagonal: 1);
+            mask = triu (mask, diagonal: 1);
             // (B, Seq_Len, Seq_Len) -> (B, Seq_Len, Seq_Len)
 
             var zeros = torch.zeros (seqLen, startPos, device: device);
-            mask = torch.hstack ([zeros, mask]).type_as (h);
+            mask = hstack ([zeros, mask]).type_as (h);
         }
 
         for (int i = 0; i < this.nLayers; i++) {
@@ -87,19 +86,19 @@ public class Transformer : nn.Module<Tensor, int, Tensor>
         // Build the theta parameter
         // According to the formula theta_i = 10000^(-2(i-1)/dim) for i = [1, 2, ... dim/2]
         // Shape: (Head_Dim / 2)
-        var thetaNumerator = torch.arange (0, headDim, 2).to (torch.float32);
+        var thetaNumerator = arange (0, headDim, 2).to (float32);
         // Shape: (Head_Dim / 2)
-        var thetaInput = torch.pow (theta, -1.0f * (thetaNumerator / headDim)); // (Dim / 2)
+        var thetaInput = pow (theta, -1.0f * (thetaNumerator / headDim)); // (Dim / 2)
         // Construct the positions (the "m" parameter)
         // Shape: (Seq_Len)
-        var m = torch.arange (seqLen);
+        var m = arange (seqLen);
         // Multiply each theta by each position using the outer product.
         // Shape: (Seq_Len) outer_product* (Head_Dim / 2) -> (Seq_Len, Head_Dim / 2)
-        var freqs = torch.outer (m, thetaInput).to (torch.float32);
+        var freqs = outer (m, thetaInput).to (float32);
 
         // We can compute complex numbers in the polar form c = R * exp(m * theta), where R = 1 as follows:
         // (Seq_Len, Head_Dim / 2) -> (Seq_Len, Head_Dim / 2)
-        var freqsComplex = torch.polar (torch.ones_like (freqs), freqs);
+        var freqsComplex = polar (ones_like (freqs), freqs);
 
         return freqsComplex;
     }

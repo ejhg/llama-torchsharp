@@ -8,7 +8,7 @@ public class RMSNorm : torch.nn.Module<torch.Tensor, torch.Tensor>
     private float _eps;
     private Parameter weight;
 
-    public RMSNorm (JsonModelArgs args)
+    public RMSNorm (ConfigurationParams args)
         : base (nameof(RMSNorm)) {
         this._eps = args.norm_eps;
 

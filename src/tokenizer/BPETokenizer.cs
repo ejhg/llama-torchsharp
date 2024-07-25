@@ -43,11 +43,11 @@ public class BPETokenizer : ITokenizer
 
         var tokens = this.tokenizer.Encode (input).Ids.ToArray ();
         if (bos) {
-            tokens = new int[] { this.BosId }.Concat (tokens).ToArray ();
+            tokens = new[] { this.BosId }.Concat (tokens).ToArray ();
         }
 
         if (eos) {
-            tokens = tokens.Concat (new int[] { this.EosId }).ToArray ();
+            tokens = tokens.Concat (new[] { this.EosId }).ToArray ();
         }
 
         Console.WriteLine ($"tokens: {string.Join (",", tokens)}");

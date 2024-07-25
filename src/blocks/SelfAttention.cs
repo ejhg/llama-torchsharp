@@ -16,7 +16,7 @@ public class SelfAttention : torch.nn.Module<torch.Tensor, int, torch.Tensor, to
     private torch.Tensor cache_k;
     private torch.Tensor cache_v;
 
-    public SelfAttention (JsonModelArgs args)
+    public SelfAttention (ConfigurationParams args)
         : base (nameof(SelfAttention)) {
         // # Indicates the number of heads for the Keys and Values
         this.nKVHeads = args.n_kv_heads ?? args.n_heads;

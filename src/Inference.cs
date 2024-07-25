@@ -1,79 +1,26 @@
-﻿using System.Diagnostics;
-using System.Text.Json;
+using System.Diagnostics;
 using TorchSharp;
-using TorchSharp.PyBridge;
 
 namespace LLAMA;
 
 public record CompletionPrediction (string generation, string[]? tokens, float[]? logProbs);
 
-public class LLaMA
+static class Inference
 {
-    private Transformer transformer;
-    private ITokenizer tokenizer;
-
-    LLaMA (Transformer transformer, ITokenizer tokenizer) {
-        this.transformer = transformer;
-        this.tokenizer = tokenizer;
-    }
-
-    public static LLaMA Build (
-        string modelFolder,
+    static (int[][], float[][]?) Generate (
+        Transformer transformer,
         ITokenizer tokenizer,
-        int maxSeqLen,
-        int maxBatchSize,
-        string paramJsonPath = "params.json",
-        string modelWeightPath = "consolidated.00.pth",
-        string device = "cpu"
-    ) {
-        var stopWatch = new Stopwatch ();
-        stopWatch.Start ();
-
-        paramJsonPath = Path.Combine (modelFolder, paramJsonPath);
-        var modelArgs = JsonSerializer.Deserialize<JsonModelArgs> (File.ReadAllText (paramJsonPath)) ??
-                        throw new Exception ("Failed to deserialize model args");
-
-        modelArgs.vocab_size = tokenizer.VocabSize;
-        modelArgs.max_seq_len = maxSeqLen;
-        modelArgs.max_batch_size = maxBatchSize;
-        torch.set_default_dtype (torch.bfloat16);
-
-        // print model args
-        var modelArgsJson = JsonSerializer.Serialize (modelArgs, new JsonSerializerOptions { WriteIndented = true });
-        Console.WriteLine ($"modelArgs: {modelArgsJson}");
-
-        var checkpointPath = Path.Combine (modelFolder, modelWeightPath);
-
-        var model = new Transformer (modelArgs);
-        var loadedParameters = new Dictionary<string, bool> ();
-
-        Console.WriteLine ("loading checkpoint");
-        model.load_py (location: checkpointPath, strict: false, loadedParameters: loadedParameters);
-
-        // print loaded parameters
-        foreach (var (key, value) in loadedParameters.OrderBy (x => x.Key)) {
-            Console.WriteLine ($"loadedParameters: {key} {value}");
-        }
-
-        model = model.to (device);
-
-        stopWatch.Stop ();
-        Console.WriteLine ($"Loading checkpoint took {stopWatch.ElapsedMilliseconds} ms");
-
-        return new LLaMA (model, tokenizer);
-    }
-
-    (int[][], float[][]?) Generate (
         int[][] promptTokens,
         int maxGenLen,
         float temperature = 0.6f,
         float topP = 0.9f,
         bool logProbs = false,
         bool echo = false,
-        string device = "cpu") {
+        string device = "cpu"
+    ) {
         torch.Tensor? tokenLogProbs = null;
         var batch = promptTokens.Length;
-        var param = this.transformer.Args;
+        var param = transformer.Args;
         Debug.Assert (batch <= param.max_batch_size, "Batch size should be less than or equal to the max batch size");
 
         var minPromptLen = promptTokens.Min (x => x.Length);
@@ -85,35 +32,35 @@ public class LLaMA
         var tokens = torch.full (new long[] {
             batch,
             totalLen
-        }, this.tokenizer.PadId, dtype: torch.int64, device: device);
+        }, tokenizer.PadId, dtype: torch.int64, device: device);
         for (var i = 0; i < batch; i++) {
             var promptLen = promptTokens[i].Length;
-            tokens[i, 0..promptLen] = torch.tensor (promptTokens[i], dtype: torch.int64, device: device);
+            tokens[i, ..promptLen] = torch.tensor (promptTokens[i], dtype: torch.int64, device: device);
         }
 
         if (logProbs) {
-            tokenLogProbs = torch.zeros (batch, totalLen, this.tokenizer.VocabSize, dtype: torch.float32, device: device);
+            tokenLogProbs = torch.zeros (batch, totalLen, tokenizer.VocabSize, dtype: torch.float32, device: device);
         }
 
         using var _ = torch.no_grad ();
 
         var prevPos = 0;
         var eosReached = torch.tensor (new bool[batch], device: device);
-        var inputTextMask = tokens != this.tokenizer.PadId;
+        var inputTextMask = tokens != tokenizer.PadId;
 
         torch.Tensor logits;
         if (minPromptLen == totalLen) {
-            logits = this.transformer.forward (tokens, prevPos);
+            logits = transformer.forward (tokens, prevPos);
             tokenLogProbs = -torch.nn.functional.cross_entropy (input: logits.transpose (1, 2), target: tokens,
-                reduction: torch.nn.Reduction.None, ignore_index: this.tokenizer.PadId);
+                reduction: torch.nn.Reduction.None, ignore_index: tokenizer.PadId);
         }
 
         for (int curPos = minPromptLen; curPos != totalLen; curPos++) {
-            logits = this.transformer.forward (tokens[.., prevPos..curPos], prevPos);
+            logits = transformer.forward (tokens[.., prevPos..curPos], prevPos);
             torch.Tensor nextToken;
             if (temperature > 0) {
                 var probs = torch.softmax (logits[.., -1] / temperature, dim: -1);
-                nextToken = this.SampleTopP (probs, topP);
+                nextToken = SampleTopP (probs, topP);
             } else {
                 nextToken = torch.argmax (logits[.., -1], dim: -1);
             }
@@ -127,10 +74,10 @@ public class LLaMA
             tokens[.., curPos] = nextToken;
             if (logProbs) {
                 tokenLogProbs![.., (prevPos + 1) .. (curPos + 1)] = -torch.nn.functional.cross_entropy (input: logits.transpose (1, 2),
-                    target: tokens[.., (prevPos + 1) .. (curPos + 1)], reduction: torch.nn.Reduction.None, ignore_index: this.tokenizer.PadId);
+                    target: tokens[.., (prevPos + 1) .. (curPos + 1)], reduction: torch.nn.Reduction.None, ignore_index: tokenizer.PadId);
             }
 
-            eosReached |= (~inputTextMask[.., curPos]) & (nextToken == this.tokenizer.EosId);
+            eosReached |= (~inputTextMask[.., curPos]) & (nextToken == tokenizer.EosId);
             if (eosReached.all ().item<bool> ()) {
                 break;
             }
@@ -151,8 +98,8 @@ public class LLaMA
             }
 
             // cut to first eos if any
-            if (toks.Contains (this.tokenizer.EosId)) {
-                var eosPos = Array.IndexOf (toks, this.tokenizer.EosId);
+            if (toks.Contains (tokenizer.EosId)) {
+                var eosPos = Array.IndexOf (toks, tokenizer.EosId);
                 toks = toks[..eosPos];
                 if (logProbs) {
                     probs = probs![..eosPos];
@@ -168,23 +115,35 @@ public class LLaMA
         return (outputTokens, logProbs ? null : outputLogProbs);
     }
 
-    public CompletionPrediction[] TextCompletion (
+    public static CompletionPrediction[] TextCompletion (
+        Transformer transformer,
+        ITokenizer tokenizer,
         string[] prompts,
         int? maxGenLen = null,
         float temperature = 0.6f,
         float topP = 0.9f,
         bool logProbs = false,
         bool echo = false,
-        string device = "cpu") {
-        maxGenLen ??= this.transformer.Args.max_seq_len - 1;
+        string device = "cpu"
+    ) {
+        maxGenLen ??= transformer.Args.max_seq_len - 1;
 
-        var prompTokens = prompts.Select (x => this.tokenizer.Encode (x, bos: true, eos: false)).ToArray ();
-        var (outputTokens, outputLogProbs) = this.Generate (prompTokens, maxGenLen.Value, temperature, topP, logProbs, echo, device);
-        return outputTokens.Select ((x, i) => new CompletionPrediction (this.tokenizer.Decode (x),
-            x.Select (x => this.tokenizer.Decode ([x])).ToArray (), logProbs ? outputLogProbs![i] : null)).ToArray ();
+        var prompTokens = prompts.Select (x => tokenizer.Encode (x, bos: true, eos: false)).ToArray ();
+        var (outputTokens, outputLogProbs) = Generate (
+            transformer,
+            tokenizer,
+            prompTokens,
+            maxGenLen.Value,
+            temperature,
+            topP,
+            logProbs,
+            echo,
+            device);
+        return outputTokens.Select ((x, i) => new CompletionPrediction (tokenizer.Decode (x),
+            x.Select (x => tokenizer.Decode ([x])).ToArray (), logProbs ? outputLogProbs![i] : null)).ToArray ();
     }
 
-    torch.Tensor SampleTopP (torch.Tensor logits, float topP) {
+    static torch.Tensor SampleTopP (torch.Tensor logits, float topP) {
         var (probsSort, probsIndex) = torch.sort (logits, dim: -1, descending: true);
         var cumsum = torch.cumsum (probsSort, dim: -1);
         var mask = cumsum - probsSort > topP;
