@@ -9,17 +9,17 @@ public class FeedForward : torch.nn.Module<torch.Tensor, torch.Tensor>
     private Linear w2;
     private Linear w3;
 
-    public FeedForward (ModelArgs args)
+    public FeedForward (JsonModelArgs args)
         : base (nameof(FeedForward)) {
-        var hiddenDim = args.Dim * 4;
+        var hiddenDim = args.dim * 4;
         hiddenDim = 2 * hiddenDim / 3;
-        hiddenDim = args.FFNDimMultiplier.HasValue ? (int)args.FFNDimMultiplier.Value * hiddenDim : hiddenDim;
+        hiddenDim = args.ffn_dim_multiplier.HasValue ? (int)args.ffn_dim_multiplier.Value * hiddenDim : hiddenDim;
 
         // Round the hidden_dim to the nearest multiple of the multiple_of parameter
-        hiddenDim = args.MultipleOf * ((hiddenDim + args.MultipleOf - 1) / args.MultipleOf);
-        this.w1 = torch.nn.Linear (args.Dim, hiddenDim, hasBias: false, dtype: args.Dtype);
-        this.w2 = torch.nn.Linear (hiddenDim, args.Dim, hasBias: false, dtype: args.Dtype);
-        this.w3 = torch.nn.Linear (args.Dim, hiddenDim, hasBias: false, dtype: args.Dtype);
+        hiddenDim = args.multiple_of * ((hiddenDim + args.multiple_of - 1) / args.multiple_of);
+        this.w1 = torch.nn.Linear (args.dim, hiddenDim, hasBias: false, dtype: args.Dtype);
+        this.w2 = torch.nn.Linear (hiddenDim, args.dim, hasBias: false, dtype: args.Dtype);
+        this.w3 = torch.nn.Linear (args.dim, hiddenDim, hasBias: false, dtype: args.Dtype);
 
         RegisterComponents ();
     }

@@ -16,25 +16,25 @@ public class SelfAttention : torch.nn.Module<torch.Tensor, int, torch.Tensor, to
     private torch.Tensor cache_k;
     private torch.Tensor cache_v;
 
-    public SelfAttention (ModelArgs args)
+    public SelfAttention (JsonModelArgs args)
         : base (nameof(SelfAttention)) {
         // # Indicates the number of heads for the Keys and Values
-        this.nKVHeads = args.NKVHeads ?? args.NHeads;
+        this.nKVHeads = args.n_kv_heads ?? args.n_heads;
         // Indicates the number of heads for the Queries
-        this.nHeadsQ = args.NHeads;
+        this.nHeadsQ = args.n_heads;
         // Indicates how many times the Keys and Values should be repeated
         this.nRep = this.nHeadsQ / this.nKVHeads;
         //Indicates the dimension of each head, that is, the part of the embedding that each head will be responsible for
-        this.headDim = args.Dim / args.NHeads;
+        this.headDim = args.dim / args.n_heads;
 
-        this.wq = torch.nn.Linear (args.Dim, args.NHeads * this.headDim, hasBias: false, dtype: args.Dtype);
-        this.wk = torch.nn.Linear (args.Dim, this.nKVHeads * this.headDim, hasBias: false, dtype: args.Dtype);
-        this.wv = torch.nn.Linear (args.Dim, this.nKVHeads * this.headDim, hasBias: false, dtype: args.Dtype);
-        this.wo = torch.nn.Linear (args.NHeads * this.headDim, args.Dim, hasBias: false, dtype: args.Dtype);
+        this.wq = torch.nn.Linear (args.dim, args.n_heads * this.headDim, hasBias: false, dtype: args.Dtype);
+        this.wk = torch.nn.Linear (args.dim, this.nKVHeads * this.headDim, hasBias: false, dtype: args.Dtype);
+        this.wv = torch.nn.Linear (args.dim, this.nKVHeads * this.headDim, hasBias: false, dtype: args.Dtype);
+        this.wo = torch.nn.Linear (args.n_heads * this.headDim, args.dim, hasBias: false, dtype: args.Dtype);
         RegisterComponents ();
 
-        this.cache_k = torch.zeros (args.MaxBatchSize, args.MaxSeqLen, this.nKVHeads, this.headDim, dtype: args.Dtype);
-        this.cache_v = torch.zeros (args.MaxBatchSize, args.MaxSeqLen, this.nKVHeads, this.headDim, dtype: args.Dtype);
+        this.cache_k = torch.zeros (args.max_batch_size, args.max_seq_len, this.nKVHeads, this.headDim, dtype: args.Dtype);
+        this.cache_v = torch.zeros (args.max_batch_size, args.max_seq_len, this.nKVHeads, this.headDim, dtype: args.Dtype);
     }
 
     public override torch.Tensor forward (torch.Tensor input, int startPos, torch.Tensor freqsComplex, torch.Tensor? mask = null) {

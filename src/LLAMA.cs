@@ -30,11 +30,12 @@ public class LLaMA
         stopWatch.Start ();
 
         paramJsonPath = Path.Combine (modelFolder, paramJsonPath);
-        var modelArgs = JsonSerializer.Deserialize<ModelArgs> (File.ReadAllText (paramJsonPath)) ??
+        var modelArgs = JsonSerializer.Deserialize<JsonModelArgs> (File.ReadAllText (paramJsonPath)) ??
                         throw new Exception ("Failed to deserialize model args");
-        modelArgs.VocabSize = tokenizer.VocabSize;
-        modelArgs.MaxSeqLen = maxSeqLen;
-        modelArgs.MaxBatchSize = maxBatchSize;
+
+        modelArgs.vocab_size = tokenizer.VocabSize;
+        modelArgs.max_seq_len = maxSeqLen;
+        modelArgs.max_batch_size = maxBatchSize;
         torch.set_default_dtype (torch.bfloat16);
 
         // print model args
@@ -55,6 +56,7 @@ public class LLaMA
         }
 
         model = model.to (device);
+
         stopWatch.Stop ();
         Console.WriteLine ($"Loading checkpoint took {stopWatch.ElapsedMilliseconds} ms");
 
@@ -72,13 +74,13 @@ public class LLaMA
         torch.Tensor? tokenLogProbs = null;
         var batch = promptTokens.Length;
         var param = this.transformer.Args;
-        Debug.Assert (batch <= param.MaxBatchSize, "Batch size should be less than or equal to the max batch size");
+        Debug.Assert (batch <= param.max_batch_size, "Batch size should be less than or equal to the max batch size");
 
         var minPromptLen = promptTokens.Min (x => x.Length);
         var maxPromptLen = promptTokens.Max (x => x.Length);
-        Debug.Assert (maxPromptLen <= param.MaxSeqLen, "Prompt length should be less than or equal to the max sequence length");
+        Debug.Assert (maxPromptLen <= param.max_seq_len, "Prompt length should be less than or equal to the max sequence length");
 
-        var totalLen = Math.Min (maxPromptLen + maxGenLen, param.MaxSeqLen);
+        var totalLen = Math.Min (maxPromptLen + maxGenLen, param.max_seq_len);
 
         var tokens = torch.full (new long[] {
             batch,
@@ -174,7 +176,7 @@ public class LLaMA
         bool logProbs = false,
         bool echo = false,
         string device = "cpu") {
-        maxGenLen ??= this.transformer.Args.MaxSeqLen - 1;
+        maxGenLen ??= this.transformer.Args.max_seq_len - 1;
 
         var prompTokens = prompts.Select (x => this.tokenizer.Encode (x, bos: true, eos: false)).ToArray ();
         var (outputTokens, outputLogProbs) = this.Generate (prompTokens, maxGenLen.Value, temperature, topP, logProbs, echo, device);

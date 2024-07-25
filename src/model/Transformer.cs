@@ -7,7 +7,7 @@ namespace LLAMA;
 
 public class Transformer : nn.Module<Tensor, int, Tensor>
 {
-    private ModelArgs args;
+    private JsonModelArgs args;
     private int vocabSize;
     private int nLayers;
     private Embedding tok_embeddings;
@@ -16,14 +16,14 @@ public class Transformer : nn.Module<Tensor, int, Tensor>
     private Linear output;
     private Tensor freqs_compex;
 
-    public Transformer (ModelArgs args)
+    public Transformer (JsonModelArgs args)
         : base (nameof(Transformer)) {
-        Debug.Assert (args.VocabSize > 0, "vocab size must be set");
+        Debug.Assert (args.vocab_size > 0, "vocab size must be set");
 
         this.args = args;
-        this.vocabSize = args.VocabSize;
-        this.nLayers = args.NLayers;
-        this.tok_embeddings = nn.Embedding (this.vocabSize, this.args.Dim, dtype: args.Dtype);
+        this.vocabSize = args.vocab_size;
+        this.nLayers = args.n_layers;
+        this.tok_embeddings = nn.Embedding (this.vocabSize, this.args.dim, dtype: args.Dtype);
 
         this.layers = nn.ModuleList<nn.Module<Tensor, int, Tensor, Tensor?, Tensor>> ();
         for (int i = 0; i < this.nLayers; i++) {
@@ -32,12 +32,12 @@ public class Transformer : nn.Module<Tensor, int, Tensor>
         }
 
         this.norm = new RMSNorm (args);
-        this.output = nn.Linear (args.Dim, this.vocabSize, dtype: args.Dtype, hasBias: false);
+        this.output = nn.Linear (args.dim, this.vocabSize, dtype: args.Dtype, hasBias: false);
         RegisterComponents ();
-        this.freqs_compex = PrecomputeThetaPosFrequencies (args.Dim / args.NHeads, args.MaxSeqLen * 2);
+        this.freqs_compex = PrecomputeThetaPosFrequencies (args.dim / args.n_heads, args.max_seq_len * 2);
     }
 
-    public ModelArgs Args => this.args;
+    public JsonModelArgs Args => this.args;
 
     public override Tensor forward (Tensor tokens, int startPos) {
         // (B, Seq_Len) -> (B, Seq_Len, Dim)

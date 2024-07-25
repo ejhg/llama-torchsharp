@@ -8,12 +8,12 @@ public class RMSNorm : torch.nn.Module<torch.Tensor, torch.Tensor>
     private float _eps;
     private Parameter weight;
 
-    public RMSNorm (ModelArgs args)
+    public RMSNorm (JsonModelArgs args)
         : base (nameof(RMSNorm)) {
-        this._eps = args.NormEps;
+        this._eps = args.norm_eps;
 
         // the gamma scalar
-        this.weight = torch.nn.Parameter (torch.ones (args.Dim, dtype: args.Dtype));
+        this.weight = torch.nn.Parameter (torch.ones (args.dim, dtype: args.Dtype));
     }
 
     private torch.Tensor Norm (torch.Tensor x) {
