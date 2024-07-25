@@ -5,9 +5,11 @@ namespace LLAMA;
 
 public class FeedForward : torch.nn.Module<torch.Tensor, torch.Tensor>
 {
-    private Linear w1;
-    private Linear w2;
-    private Linear w3;
+    Linear w1;
+
+    Linear w2;
+
+    Linear w3;
 
     public FeedForward (ConfigurationParams args)
         : base (nameof(FeedForward)) {

@@ -7,14 +7,19 @@ namespace LLAMA;
 
 public class Transformer : nn.Module<Tensor, int, Tensor>
 {
-    private ConfigurationParams args;
-    private int vocabSize;
-    private int nLayers;
-    private Embedding tok_embeddings;
-    private ModuleList<nn.Module<Tensor, int, Tensor, Tensor?, Tensor>> layers;
-    private RMSNorm norm;
-    private Linear output;
-    private Tensor freqs_compex;
+    public ConfigurationParams args;
+
+    int vocabSize;
+
+    Embedding tok_embeddings;
+
+    ModuleList<nn.Module<Tensor, int, Tensor, Tensor?, Tensor>> layers;
+
+    RMSNorm norm;
+
+    Linear output;
+
+    Tensor freqs_compex;
 
     public Transformer (ConfigurationParams args)
         : base (nameof(Transformer)) {
@@ -22,32 +27,31 @@ public class Transformer : nn.Module<Tensor, int, Tensor>
 
         this.args = args;
         this.vocabSize = args.vocab_size;
-        this.nLayers = args.n_layers;
-        this.tok_embeddings = nn.Embedding (this.vocabSize, this.args.dim, dtype: args.Dtype);
+        this.tok_embeddings = nn.Embedding (
+            this.vocabSize,
+            this.args.dim,
+            dtype: args.Dtype);
 
         this.layers = nn.ModuleList<nn.Module<Tensor, int, Tensor, Tensor?, Tensor>> ();
-        for (int i = 0; i < this.nLayers; i++) {
+        for (int i = 0; i < args.n_layers; i++) {
             Console.WriteLine ("creating encoder block " + i);
             this.layers.Add (new EncoderBlock (args));
         }
 
         this.norm = new RMSNorm (args);
         this.output = nn.Linear (args.dim, this.vocabSize, dtype: args.Dtype, hasBias: false);
-        RegisterComponents ();
         this.freqs_compex = PrecomputeThetaPosFrequencies (args.dim / args.n_heads, args.max_seq_len * 2);
-    }
 
-    public ConfigurationParams Args => this.args;
+        RegisterComponents ();
+    }
 
     public override Tensor forward (Tensor tokens, int startPos) {
         // (B, Seq_Len) -> (B, Seq_Len, Dim)
         var seqLen = (int)tokens.shape[1];
 
-        // print tokens shape
         var h = this.tok_embeddings.forward (tokens);
         var freqsComplex = this.freqs_compex[startPos..(startPos + seqLen)].to (h.device);
         Tensor? mask = null;
-        Console.WriteLine ($"tokens shape: {string.Join (",", tokens.shape)}");
 
         if (seqLen > 1) {
             var device = h.device;
@@ -63,25 +67,21 @@ public class Transformer : nn.Module<Tensor, int, Tensor>
             mask = hstack ([zeros, mask]).type_as (h);
         }
 
-        for (int i = 0; i < this.nLayers; i++) {
+        for (int i = 0; i < this.layers.Count; i++) {
             h = this.layers[i].forward (h, startPos, freqsComplex, mask);
         }
-
 
         // (B, Seq_Len, Dim) -> (B, Seq_Len, Dim)
         h = this.norm.forward (h);
         // (B, Seq_Len, Dim) -> (B, Seq_Len, Vocab_Size)
-        var output = this.output.forward (h);
 
-        return output;
+        return this.output.forward (h);
     }
 
     static Tensor PrecomputeThetaPosFrequencies (int headDim, int seqLen, float theta = 10000.0f) {
         // As written in the paragraph 3.2.2 of the paper
         // >> In order to generalize our results in 2D to any xi ∈ Rd where **d is even**, [...]
-        if (headDim % 2 != 0) {
-            throw new ArgumentException ("Dimension must be divisible by 2", nameof(headDim));
-        }
+        Debug.Assert (headDim % 2 == 0, "Dimension must be divisible by 2");
 
         // Build the theta parameter
         // According to the formula theta_i = 10000^(-2(i-1)/dim) for i = [1, 2, ... dim/2]
@@ -98,8 +98,6 @@ public class Transformer : nn.Module<Tensor, int, Tensor>
 
         // We can compute complex numbers in the polar form c = R * exp(m * theta), where R = 1 as follows:
         // (Seq_Len, Head_Dim / 2) -> (Seq_Len, Head_Dim / 2)
-        var freqsComplex = polar (ones_like (freqs), freqs);
-
-        return freqsComplex;
+        return polar (ones_like (freqs), freqs);
     }
 }

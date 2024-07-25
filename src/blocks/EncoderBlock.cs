@@ -4,10 +4,13 @@ namespace LLAMA;
 
 public class EncoderBlock : torch.nn.Module<torch.Tensor, int, torch.Tensor, torch.Tensor?, torch.Tensor>
 {
-    private SelfAttention attention;
-    private FeedForward feed_forward;
-    private RMSNorm attention_norm;
-    private RMSNorm ffn_norm;
+    SelfAttention attention;
+
+    FeedForward feed_forward;
+
+    RMSNorm attention_norm;
+
+    RMSNorm ffn_norm;
 
     public EncoderBlock (ConfigurationParams args)
         : base (nameof(EncoderBlock)) {

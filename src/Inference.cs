@@ -20,7 +20,7 @@ static class Inference
     ) {
         torch.Tensor? tokenLogProbs = null;
         var batch = promptTokens.Length;
-        var param = transformer.Args;
+        var param = transformer.args;
         Debug.Assert (batch <= param.max_batch_size, "Batch size should be less than or equal to the max batch size");
 
         var minPromptLen = promptTokens.Min (x => x.Length);
@@ -70,11 +70,15 @@ static class Inference
             nextToken = torch.where (inputTextMask[.., curPos], tokens[.., curPos], nextToken);
 
             // print nextToken
-            Console.WriteLine ($"nextToken: {string.Join (",", nextToken.data<long> ())}");
             tokens[.., curPos] = nextToken;
             if (logProbs) {
                 tokenLogProbs![.., (prevPos + 1) .. (curPos + 1)] = -torch.nn.functional.cross_entropy (input: logits.transpose (1, 2),
                     target: tokens[.., (prevPos + 1) .. (curPos + 1)], reduction: torch.nn.Reduction.None, ignore_index: tokenizer.PadId);
+            }
+
+            for (var i = 0; i < batch; i++) {
+                var toks = tokens[i][..(promptTokens[i].Length + maxGenLen)].data<long> ().Select (x => (int)x).ToArray ();
+                Console.WriteLine (i + ": " + tokenizer.Decode (toks));
             }
 
             eosReached |= (~inputTextMask[.., curPos]) & (nextToken == tokenizer.EosId);
@@ -126,7 +130,7 @@ static class Inference
         bool echo = false,
         string device = "cpu"
     ) {
-        maxGenLen ??= transformer.Args.max_seq_len - 1;
+        maxGenLen ??= transformer.args.max_seq_len - 1;
 
         var prompTokens = prompts.Select (x => tokenizer.Encode (x, bos: true, eos: false)).ToArray ();
         var (outputTokens, outputLogProbs) = Generate (
@@ -139,8 +143,11 @@ static class Inference
             logProbs,
             echo,
             device);
-        return outputTokens.Select ((x, i) => new CompletionPrediction (tokenizer.Decode (x),
-            x.Select (x => tokenizer.Decode ([x])).ToArray (), logProbs ? outputLogProbs![i] : null)).ToArray ();
+        return outputTokens
+            .Select ((x, i) => new CompletionPrediction (tokenizer.Decode (x),
+                x.Select (x => tokenizer.Decode ([x])).ToArray (),
+                logProbs ? outputLogProbs![i] : null))
+            .ToArray ();
     }
 
     static torch.Tensor SampleTopP (torch.Tensor logits, float topP) {

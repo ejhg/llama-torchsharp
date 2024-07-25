@@ -31,10 +31,11 @@ public class SelfAttention : torch.nn.Module<torch.Tensor, int, torch.Tensor, to
         this.wk = torch.nn.Linear (args.dim, this.nKVHeads * this.headDim, hasBias: false, dtype: args.Dtype);
         this.wv = torch.nn.Linear (args.dim, this.nKVHeads * this.headDim, hasBias: false, dtype: args.Dtype);
         this.wo = torch.nn.Linear (args.n_heads * this.headDim, args.dim, hasBias: false, dtype: args.Dtype);
-        RegisterComponents ();
 
         this.cache_k = torch.zeros (args.max_batch_size, args.max_seq_len, this.nKVHeads, this.headDim, dtype: args.Dtype);
         this.cache_v = torch.zeros (args.max_batch_size, args.max_seq_len, this.nKVHeads, this.headDim, dtype: args.Dtype);
+
+        RegisterComponents ();
     }
 
     public override torch.Tensor forward (torch.Tensor input, int startPos, torch.Tensor freqsComplex, torch.Tensor? mask = null) {

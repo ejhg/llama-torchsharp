@@ -5,8 +5,9 @@ namespace LLAMA;
 
 public class RMSNorm : torch.nn.Module<torch.Tensor, torch.Tensor>
 {
-    private float _eps;
-    private Parameter weight;
+    float _eps;
+
+    Parameter weight;
 
     public RMSNorm (ConfigurationParams args)
         : base (nameof(RMSNorm)) {
@@ -16,11 +17,10 @@ public class RMSNorm : torch.nn.Module<torch.Tensor, torch.Tensor>
         this.weight = torch.nn.Parameter (torch.ones (args.dim, dtype: args.Dtype));
     }
 
-    private torch.Tensor Norm (torch.Tensor x) {
+    torch.Tensor Norm (torch.Tensor x) {
         // (B, Seq_Len, Dim) * (B, Seq_Len, 1) = (B, Seq_Len, Dim)
         // rsqrt = 1 / sqrt
-        var output = x * torch.rsqrt (x.pow (2).mean ([-1L], keepdim: true) + this._eps);
-        return output;
+        return x * torch.rsqrt (x.pow (2).mean ([-1L], keepdim: true) + this._eps);
     }
 
     public override torch.Tensor forward (torch.Tensor input) {
@@ -28,8 +28,6 @@ public class RMSNorm : torch.nn.Module<torch.Tensor, torch.Tensor>
         // (B, Seq_Len, Dim)
         var normed = this.Norm (input.to_type (torch.ScalarType.Float32)).type_as (input);
         // (B, Seq_Len, Dim) * (Dim) = (B, Seq_Len, Dim)
-        var output = this.weight * normed;
-
-        return output;
+        return this.weight * normed;
     }
 }
