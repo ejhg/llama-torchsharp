@@ -20,13 +20,23 @@ static class Model
         stopWatch.Start ();
 
         paramJsonPath = Path.Combine (modelFolder, paramJsonPath);
-        var modelArgs = JsonSerializer.Deserialize<ConfigurationParams> (File.ReadAllText (paramJsonPath));
+        var json = JsonSerializer.Deserialize<ConfigurationParamsJson> (File.ReadAllText (paramJsonPath));
 
-        modelArgs.vocab_size = tokenizer.VocabSize;
-        modelArgs.max_seq_len = maxSeqLen;
-        modelArgs.max_batch_size = maxBatchSize;
+        var modelArgs = new ConfigurationParams {
+            dim = json.dim,
+            n_layers = json.n_layers,
+            n_heads = json.n_heads,
+            norm_eps = json.norm_eps,
+            multiple_of = json.multiple_of,
+            n_kv_heads = json.n_kv_heads,
+            ffn_dim_multiplier = json.ffn_dim_multiplier,
+            vocab_size = tokenizer.VocabSize,
+            max_seq_len = maxSeqLen,
+            max_batch_size = maxBatchSize,
+            Dtype = torch.ScalarType.BFloat16,
+        };
 
-        torch.set_default_dtype (torch.bfloat16);
+        torch.set_default_dtype (modelArgs.Dtype);
 
         // print model args
         var modelArgsJson = JsonSerializer.Serialize (modelArgs, new JsonSerializerOptions { WriteIndented = true });

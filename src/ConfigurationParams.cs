@@ -24,5 +24,5 @@ public class ConfigurationParams
 
     public int max_seq_len { get; set; } = 1024;
 
-    public torch.ScalarType Dtype => torch.ScalarType.BFloat16;
+    public torch.ScalarType Dtype { get; set; } = torch.ScalarType.BFloat16;
 }

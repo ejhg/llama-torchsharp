@@ -55,7 +55,7 @@ static class Inference
                 reduction: torch.nn.Reduction.None, ignore_index: tokenizer.PadId);
         }
 
-        for (int curPos = minPromptLen; curPos != totalLen; curPos++) {
+        for (int curPos = minPromptLen; curPos < totalLen; curPos++) {
             logits = transformer.forward (tokens[.., prevPos..curPos], prevPos);
             torch.Tensor nextToken;
             if (temperature > 0) {
