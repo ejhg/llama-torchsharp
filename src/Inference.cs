@@ -12,11 +12,11 @@ static class Inference
         ITokenizer tokenizer,
         int[][] promptTokens,
         int maxGenLen,
-        float temperature = 0.6f,
-        float topP = 0.9f,
-        bool logProbs = false,
-        bool echo = false,
-        string device = "cpu"
+        float temperature,
+        float topP,
+        bool logProbs,
+        bool echo,
+        string device
     ) {
         torch.Tensor? tokenLogProbs = null;
         var batch = promptTokens.Length;
@@ -78,6 +78,7 @@ static class Inference
 
             for (var i = 0; i < batch; i++) {
                 var toks = tokens[i][..(promptTokens[i].Length + maxGenLen)].data<long> ().Select (x => (int)x).ToArray ();
+                Console.WriteLine (i + ": " + string.Join (",", toks));
                 Console.WriteLine (i + ": " + tokenizer.Decode (toks));
             }
 

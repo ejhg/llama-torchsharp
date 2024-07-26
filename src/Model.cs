@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text.Json;
 using TorchSharp;
-using TorchSharp.PyBridge;
+using llama.unpickler;
 
 namespace LLAMA;
 
@@ -46,9 +46,8 @@ static class Model
         var loadedParameters = new Dictionary<string, bool> ();
 
         Console.WriteLine ("loading checkpoint");
-        model.load_py (
+        model.optimized_load_py (
             location: Path.Combine (modelFolder, modelWeightPath),
-            strict: false,
             loadedParameters: loadedParameters);
 
         // print loaded parameters
