@@ -51,8 +51,11 @@ static class Inference
         torch.Tensor logits;
         if (minPromptLen == totalLen) {
             logits = transformer.forward (tokens, prevPos);
-            tokenLogProbs = -torch.nn.functional.cross_entropy (input: logits.transpose (1, 2), target: tokens,
-                reduction: torch.nn.Reduction.None, ignore_index: tokenizer.PadId);
+            tokenLogProbs = -torch.nn.functional.cross_entropy (
+                input: logits.transpose (1, 2),
+                target: tokens,
+                reduction: torch.nn.Reduction.None,
+                ignore_index: tokenizer.PadId);
         }
 
         for (int curPos = minPromptLen; curPos < totalLen; curPos++) {

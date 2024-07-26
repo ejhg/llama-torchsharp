@@ -43,17 +43,10 @@ static class Model
         Console.WriteLine ($"modelArgs: {modelArgsJson}");
 
         var model = new Transformer (modelArgs);
-        var loadedParameters = new Dictionary<string, bool> ();
 
         Console.WriteLine ("loading checkpoint");
         model.optimized_load_py (
-            location: Path.Combine (modelFolder, modelWeightPath),
-            loadedParameters: loadedParameters);
-
-        // print loaded parameters
-        foreach (var (key, value) in loadedParameters.OrderBy (x => x.Key)) {
-            Console.WriteLine ($"loadedParameters: {key} {value}");
-        }
+            location: Path.Combine (modelFolder, modelWeightPath));
 
         model = model.to (device);
 

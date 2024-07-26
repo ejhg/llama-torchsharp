@@ -2,7 +2,7 @@
 using TorchSharp;
 
 var weightsDir = args[0];
-var device = "mps";
+var device = "cpu";
 
 torch.manual_seed (100);
 

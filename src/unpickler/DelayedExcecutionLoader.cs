@@ -6,8 +6,7 @@ static class DelayedExcecutionLoader
 {
     public static void optimized_load_py (
         this torch.nn.Module module,
-        string location,
-        Dictionary<string, bool> loadedParameters
+        string location
     ) {
         using FileStream fileStream = File.OpenRead (location);
 
@@ -20,39 +19,18 @@ static class DelayedExcecutionLoader
                     source.Add (key, (Func<object[]>)hashtable[key]);
                 }
 
-                var unexpectedKeyes = load_state_dict (module, source).unexpected_keyes;
+                load_state_dict (module, source);
 
                 fileStream.Close ();
-
-                foreach (string key in hashtable.Keys) {
-                    loadedParameters[key] = true;
-                }
-
-                foreach (string key in unexpectedKeyes) {
-                    loadedParameters[key] = false;
-                }
             }
         }
     }
 
-    static (IList<string> missing_keys, IList<string> unexpected_keyes) load_state_dict (
+    static void load_state_dict (
         torch.nn.Module module,
         Dictionary<string, Func<object[]>> source
     ) {
-        List<string> missing = new();
-        List<string> unexpected = new();
-
-        Dictionary<string, torch.Tensor> dictionary = module.state_dict ();
-
-        foreach (string key in source.Keys) {
-            if (!dictionary.ContainsKey (key))
-                unexpected.Add (key);
-        }
-
-        foreach (string key in dictionary.Keys) {
-            if (!source.ContainsKey (key))
-                missing.Add (key);
-        }
+        var dictionary = module.state_dict ();
 
         using (torch.no_grad ()) {
             foreach (string key in source.Keys) {
@@ -80,10 +58,10 @@ static class DelayedExcecutionLoader
                 temp.ReadBytesFromStream (stream);
                 stream.Close ();
 
+                Console.WriteLine ($"loading {key} [{string.Join (",", shape)}] {tObject.dtype} -> {dictionary[key].dtype}");
+
                 dictionary[key].copy_ (temp);
             }
-
-            return (missing, unexpected);
         }
     }
 }
