@@ -12,9 +12,9 @@ static class Model
         ITokenizer tokenizer,
         int maxSeqLen,
         int maxBatchSize,
+        string device,
         string paramJsonPath = "params.json",
-        string modelWeightPath = "consolidated.00.pth",
-        string device = "cpu"
+        string modelWeightPath = "consolidated.00.pth"
     ) {
         var stopWatch = new Stopwatch ();
         stopWatch.Start ();
@@ -33,7 +33,9 @@ static class Model
             vocab_size = tokenizer.VocabSize,
             max_seq_len = maxSeqLen,
             max_batch_size = maxBatchSize,
-            Dtype = torch.ScalarType.BFloat16,
+            Dtype = device == "mps"
+                ? torch.ScalarType.Float16
+                : torch.ScalarType.BFloat16,
         };
 
         torch.set_default_dtype (modelArgs.Dtype);

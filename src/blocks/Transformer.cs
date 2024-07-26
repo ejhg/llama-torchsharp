@@ -9,8 +9,6 @@ public class Transformer : nn.Module<Tensor, int, Tensor>
 {
     public ConfigurationParams args;
 
-    int vocabSize;
-
     Embedding tok_embeddings;
 
     ModuleList<nn.Module<Tensor, int, Tensor, Tensor?, Tensor>> layers;
@@ -26,9 +24,8 @@ public class Transformer : nn.Module<Tensor, int, Tensor>
         Debug.Assert (args.vocab_size > 0, "vocab size must be set");
 
         this.args = args;
-        this.vocabSize = args.vocab_size;
         this.tok_embeddings = nn.Embedding (
-            this.vocabSize,
+            args.vocab_size,
             this.args.dim,
             dtype: args.Dtype);
 
@@ -39,7 +36,7 @@ public class Transformer : nn.Module<Tensor, int, Tensor>
         }
 
         this.norm = new RMSNorm (args);
-        this.output = nn.Linear (args.dim, this.vocabSize, dtype: args.Dtype, hasBias: false);
+        this.output = nn.Linear (args.dim, args.vocab_size, dtype: args.Dtype, hasBias: false);
         this.freqs_compex = PrecomputeThetaPosFrequencies (args.dim / args.n_heads, args.max_seq_len * 2);
 
         RegisterComponents ();
@@ -61,14 +58,20 @@ public class Transformer : nn.Module<Tensor, int, Tensor>
             }, dtype: ScalarType.Float32, value: float.NegativeInfinity, device: device);
             // (B, Seq_Len) -> (B, Seq_Len, Seq_Len)
             mask = triu (mask, diagonal: 1);
+
+            if (device.type == DeviceType.MPS) {
+                // BUG: https://github.com/pytorch/pytorch/issues/100005
+                mask = nan_to_num (mask, 0.0);
+            }
+
             // (B, Seq_Len, Seq_Len) -> (B, Seq_Len, Seq_Len)
 
             var zeros = torch.zeros (seqLen, startPos, device: device);
             mask = hstack ([zeros, mask]).type_as (h);
         }
 
-        for (int i = 0; i < this.layers.Count; i++) {
-            h = this.layers[i].forward (h, startPos, freqsComplex, mask);
+        foreach (var layer in this.layers) {
+            h = layer.forward (h, startPos, freqsComplex, mask);
         }
 
         // (B, Seq_Len, Dim) -> (B, Seq_Len, Dim)

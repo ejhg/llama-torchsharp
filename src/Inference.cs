@@ -127,12 +127,12 @@ static class Inference
         Transformer transformer,
         ITokenizer tokenizer,
         string[] prompts,
+        string device,
         int? maxGenLen = null,
         float temperature = 0.6f,
         float topP = 0.9f,
         bool logProbs = false,
-        bool echo = false,
-        string device = "cpu"
+        bool echo = false
     ) {
         maxGenLen ??= transformer.args.max_seq_len - 1;
 

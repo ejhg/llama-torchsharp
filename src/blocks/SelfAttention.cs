@@ -39,8 +39,8 @@ public class SelfAttention : torch.nn.Module<torch.Tensor, int, torch.Tensor, to
     }
 
     public override torch.Tensor forward (torch.Tensor input, int startPos, torch.Tensor freqsComplex, torch.Tensor? mask = null) {
-        // move cache to the same device as input if necessary
-        if (this.cache_k.device != input.device) {
+        if ((this.cache_k.device.type, this.cache_k.device.index) != (input.device.type, input.device.index)) {
+            // move cache to the same device as input if necessary
             this.cache_k = this.cache_k.to (input.device);
             this.cache_v = this.cache_v.to (input.device);
         }
