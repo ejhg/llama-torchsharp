@@ -5,16 +5,28 @@ namespace LLAMA;
 
 public class SelfAttention : torch.nn.Module<torch.Tensor, int, torch.Tensor, torch.Tensor?, torch.Tensor>
 {
-    private int nKVHeads;
-    private int nHeadsQ;
-    private int nRep;
-    private int headDim;
-    private Linear wq;
-    private Linear wk;
-    private Linear wv;
-    private Linear wo;
-    private torch.Tensor cache_k;
-    private torch.Tensor cache_v;
+    int nKVHeads;
+
+    int nHeadsQ;
+
+    /// <summary>
+    /// Indicates how many times the Keys and Values should be repeated
+    /// </summary>
+    int nRep => this.nHeadsQ / this.nKVHeads;
+
+    int headDim;
+
+    Linear wq;
+
+    Linear wk;
+
+    Linear wv;
+
+    Linear wo;
+
+    torch.Tensor cache_k;
+
+    torch.Tensor cache_v;
 
     public SelfAttention (ConfigurationParams args)
         : base (nameof(SelfAttention)) {
@@ -22,8 +34,6 @@ public class SelfAttention : torch.nn.Module<torch.Tensor, int, torch.Tensor, to
         this.nKVHeads = args.n_kv_heads ?? args.n_heads;
         // Indicates the number of heads for the Queries
         this.nHeadsQ = args.n_heads;
-        // Indicates how many times the Keys and Values should be repeated
-        this.nRep = this.nHeadsQ / this.nKVHeads;
         //Indicates the dimension of each head, that is, the part of the embedding that each head will be responsible for
         this.headDim = args.dim / args.n_heads;
 
@@ -124,12 +134,16 @@ public class SelfAttention : torch.nn.Module<torch.Tensor, int, torch.Tensor, to
         // Separate the last dimension pairs of two values, representing the real and imaginary parts of the complex number
         // Two consecutive values will become a single complex number
         // (B, Seq_Len, H, Head_Dim) -> (B, Seq_Len, H, Head_Dim/2)
-        var input_complex = input.to_type (torch.ScalarType.Float32).reshape (input.shape[0], input.shape[1], input.shape[2], -1, 2)
+        var input_complex = input
+            .to_type (torch.ScalarType.Float32, non_blocking: true)
+            .reshape (input.shape[0], input.shape[1], input.shape[2], -1, 2)
             .view_as_complex ();
 
         // Reshape the freqs_complex tensor to match the shape of the x_complex tensor. So we need to add the batch dimension and the head dimension
         // (Seq_Len, Head_Dim/2) --> (1, Seq_Len, 1, Head_Dim/2)
-        var freqs_complex_reshaped = freqsComplex.unsqueeze (0).unsqueeze (2);
+        var freqs_complex_reshaped = freqsComplex
+            .unsqueeze (0)
+            .unsqueeze (2);
 
         // Multiply each complex number in the x_complex tensor by the corresponding complex number in the freqs_complex tensor
         // Which results in the rotation of the complex number as shown in the Figure 1 of the paper
@@ -144,6 +158,6 @@ public class SelfAttention : torch.nn.Module<torch.Tensor, int, torch.Tensor, to
         // (B, Seq_Len, H, Head_Dim/2, 2) -> (B, Seq_Len, H, Head_Dim)
         var rotated_reshaped = rotated.reshape (rotated.shape[0], rotated.shape[1], rotated.shape[2], -1);
 
-        return rotated_reshaped.type_as (input);
+        return rotated_reshaped.to_type (input.dtype, non_blocking: true);
     }
 }

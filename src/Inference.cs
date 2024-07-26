@@ -48,18 +48,9 @@ static class Inference
         var eosReached = torch.tensor (new bool[batch], device: device);
         var inputTextMask = tokens != tokenizer.PadId;
 
-        torch.Tensor logits;
-        if (minPromptLen == totalLen) {
-            logits = transformer.forward (tokens, prevPos);
-            tokenLogProbs = -torch.nn.functional.cross_entropy (
-                input: logits.transpose (1, 2),
-                target: tokens,
-                reduction: torch.nn.Reduction.None,
-                ignore_index: tokenizer.PadId);
-        }
-
         for (int curPos = minPromptLen; curPos < totalLen; curPos++) {
-            logits = transformer.forward (tokens[.., prevPos..curPos], prevPos);
+            var logits = transformer.forward (tokens[.., prevPos..curPos], prevPos);
+
             var nextToken = temperature > 0
                 ? SampleTopP (logits, topP, temperature)
                 : torch.argmax (logits[.., -1], dim: -1);

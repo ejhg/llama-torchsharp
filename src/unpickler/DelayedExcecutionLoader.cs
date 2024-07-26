@@ -50,9 +50,9 @@ static class DelayedExcecutionLoader
 
                 var tObject = ((DelayedExecutionUnpickler.TensorStream)args[0]);
 
-                using torch.Tensor temp = torch.WrappedTensorDisposeScope (() => torch
+                using torch.Tensor temp = torch
                     .empty (shape, tObject.dtype)
-                    .as_strided (shape, stride, storageOffset));
+                    .as_strided (shape, stride, storageOffset);
 
                 using var stream = tObject.data;
                 temp.ReadBytesFromStream (stream);

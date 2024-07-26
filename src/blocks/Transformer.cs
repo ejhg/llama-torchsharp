@@ -81,7 +81,7 @@ public class Transformer : nn.Module<Tensor, int, Tensor>
         return this.output.forward (h);
     }
 
-    static Tensor PrecomputeThetaPosFrequencies (int headDim, int seqLen, float theta = 10000.0f) {
+    Tensor PrecomputeThetaPosFrequencies (int headDim, int seqLen, float theta = 10000.0f) {
         // As written in the paragraph 3.2.2 of the paper
         // >> In order to generalize our results in 2D to any xi ∈ Rd where **d is even**, [...]
         Debug.Assert (headDim % 2 == 0, "Dimension must be divisible by 2");
@@ -97,7 +97,8 @@ public class Transformer : nn.Module<Tensor, int, Tensor>
         var m = arange (seqLen);
         // Multiply each theta by each position using the outer product.
         // Shape: (Seq_Len) outer_product* (Head_Dim / 2) -> (Seq_Len, Head_Dim / 2)
-        var freqs = outer (m, thetaInput).to (float32);
+        var freqs = outer (m, thetaInput)
+            .to (float32, non_blocking: true);
 
         // We can compute complex numbers in the polar form c = R * exp(m * theta), where R = 1 as follows:
         // (Seq_Len, Head_Dim / 2) -> (Seq_Len, Head_Dim / 2)
