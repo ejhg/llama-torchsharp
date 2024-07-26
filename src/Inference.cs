@@ -60,13 +60,9 @@ static class Inference
 
         for (int curPos = minPromptLen; curPos < totalLen; curPos++) {
             logits = transformer.forward (tokens[.., prevPos..curPos], prevPos);
-            torch.Tensor nextToken;
-            if (temperature > 0) {
-                var probs = torch.softmax (logits[.., -1] / temperature, dim: -1);
-                nextToken = SampleTopP (probs, topP);
-            } else {
-                nextToken = torch.argmax (logits[.., -1], dim: -1);
-            }
+            var nextToken = temperature > 0
+                ? SampleTopP (logits, topP, temperature)
+                : torch.argmax (logits[.., -1], dim: -1);
 
             nextToken = nextToken.reshape (-1);
             // # only replace token if prompt has already been generated
@@ -154,8 +150,9 @@ static class Inference
             .ToArray ();
     }
 
-    static torch.Tensor SampleTopP (torch.Tensor logits, float topP) {
-        var (probsSort, probsIndex) = torch.sort (logits, dim: -1, descending: true);
+    static torch.Tensor SampleTopP (torch.Tensor logits, float topP, double temperature) {
+        var probs = torch.softmax (logits[.., -1] / temperature, dim: -1);
+        var (probsSort, probsIndex) = torch.sort (probs, dim: -1, descending: true);
         var cumsum = torch.cumsum (probsSort, dim: -1);
         var mask = cumsum - probsSort > topP;
         probsSort[mask] = 0f;
