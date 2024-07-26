@@ -1,19 +1,19 @@
 ﻿using LLAMA;
 using TorchSharp;
 
-Console.WriteLine ("start");
-
-var vocabPath = @"vocab.json";
-var mergesPath = @"merges.txt";
-var tokenizer = new BPETokenizer (vocabPath, mergesPath);
-
-var checkpointDirectory = args[0];
-
-var device = "cpu";
+var weightsDir = args[0];
+var device = "mps";
 
 torch.manual_seed (100);
+
+Console.WriteLine ("start");
+
+var tokenizer = new BPETokenizer (
+    "resources/vocab.json",
+    "resources/merges.txt");
+
 var model = Model.build (
-    modelFolder: checkpointDirectory,
+    modelFolder: weightsDir,
     tokenizer: tokenizer,
     maxSeqLen: 128,
     maxBatchSize: 1,
