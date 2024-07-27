@@ -28,11 +28,13 @@ static class Model
             n_heads = json.n_heads,
             norm_eps = json.norm_eps,
             multiple_of = json.multiple_of,
-            n_kv_heads = json.n_kv_heads,
+            n_kv_heads = json.n_kv_heads ?? json.n_heads,
+            rope_theta = json.rope_theta ?? 500000,
             ffn_dim_multiplier = json.ffn_dim_multiplier,
             vocab_size = tokenizer.VocabSize,
             max_seq_len = maxSeqLen,
             max_batch_size = maxBatchSize,
+            use_scaled_rope = json.use_scaled_rope ?? false,
             Dtype = device == "mps"
                 ? torch.ScalarType.Float16
                 : torch.ScalarType.BFloat16,

@@ -1,4 +1,5 @@
 ﻿using LLAMA;
+using LLAMA.tokenizer.llama_3;
 using TorchSharp;
 
 var weightsDir = args[0];
@@ -8,9 +9,12 @@ torch.manual_seed (100);
 
 Console.WriteLine ("start");
 
-var tokenizer = new BPETokenizer (
-    "resources/vocab.json",
-    "resources/merges.txt");
+ITokenizer tokenizer = File.Exists ($"{weightsDir}/tokenizer.model")
+    ? new Llama3Tokenizer (
+        $"{weightsDir}/tokenizer.model")
+    : new Llama2Tokenizer (
+        "resources/vocab.json",
+        "resources/merges.txt");
 
 var model = Model.build (
     modelFolder: weightsDir,

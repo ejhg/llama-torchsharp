@@ -2,30 +2,42 @@ using Microsoft.ML.Tokenizers;
 
 namespace LLAMA;
 
-public class BPETokenizer : ITokenizer
+public class Llama2Tokenizer : ITokenizer
 {
     private Tokenizer tokenizer;
-    private bool addPrecedingSpace;
 
-    public BPETokenizer (string vocabPath, string mergesPath, bool addPrecedingSpace = true, int padToken = -1, int startToken = 1,
-        int endToken = 2) {
-        this.BosId = startToken;
-        this.EosId = endToken;
-        this.addPrecedingSpace = addPrecedingSpace;
-        this.PadId = padToken;
-        var bpe = new Bpe (vocabPath, mergesPath);
-        this.tokenizer = new Tokenizer (bpe, preTokenizer: new PreTokenizer (), normalizer: new Norm ());
-        var decoder = new TokenizeDecoder (this.tokenizer.Model.IdToToken (this.BosId)!, this.tokenizer.Model.IdToToken (this.EosId)!);
-        this.tokenizer.Decoder = decoder;
-    }
+    private bool addPrecedingSpace;
 
     public int VocabSize => this.tokenizer.Model.GetVocabSize ();
 
     public int PadId { get; }
 
-    public int BosId { get; }
+    int BosId { get; }
 
     public int EosId { get; }
+
+    public Llama2Tokenizer (
+        string vocabPath,
+        string mergesPath,
+        bool addPrecedingSpace = true,
+        int padToken = -1,
+        int startToken = 1,
+        int endToken = 2
+    ) {
+        this.BosId = startToken;
+        this.EosId = endToken;
+        this.addPrecedingSpace = addPrecedingSpace;
+        this.PadId = padToken;
+
+        this.tokenizer = new Tokenizer (
+            new Bpe (vocabPath, mergesPath),
+            preTokenizer: new PreTokenizer (),
+            normalizer: new Norm ()) {
+            Decoder = new TokenizeDecoder (
+                this.tokenizer.Model.IdToToken (this.BosId)!,
+                this.tokenizer.Model.IdToToken (this.EosId)!)
+        };
+    }
 
     public string Decode (int[] input) {
         var str = this.tokenizer.Decode (input) ?? throw new Exception ("Failed to decode");

@@ -14,5 +14,9 @@ public class ConfigurationParamsJson
 
     public int? n_kv_heads { get; set; }
 
-    public float? ffn_dim_multiplier { get; set; }
+    public decimal? ffn_dim_multiplier { get; set; }
+
+    public float? rope_theta { get; set; } = 500000;
+
+    public bool? use_scaled_rope { get; set; }
 }

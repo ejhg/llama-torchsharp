@@ -4,9 +4,11 @@ namespace LLAMA;
 
 public class TokenizeDecoder : TokenizerDecoder
 {
-    private const char spaceReplacement = '▁';
-    private string bos = "<s>";
-    private string eos = "</s>";
+    const char spaceReplacement = '▁';
+
+    string bos = "<s>";
+
+    string eos = "</s>";
 
     public TokenizeDecoder (string bos = "<s>", string eos = "</s>") {
         this.bos = bos;

@@ -15,7 +15,9 @@ public class FeedForward : torch.nn.Module<torch.Tensor, torch.Tensor>
         : base (nameof(FeedForward)) {
         var hiddenDim = args.dim * 4;
         hiddenDim = 2 * hiddenDim / 3;
-        hiddenDim = args.ffn_dim_multiplier.HasValue ? (int)args.ffn_dim_multiplier.Value * hiddenDim : hiddenDim;
+        hiddenDim = args.ffn_dim_multiplier.HasValue
+            ? (int)(args.ffn_dim_multiplier.Value * hiddenDim)
+            : hiddenDim;
 
         // Round the hidden_dim to the nearest multiple of the multiple_of parameter
         hiddenDim = args.multiple_of * ((hiddenDim + args.multiple_of - 1) / args.multiple_of);
