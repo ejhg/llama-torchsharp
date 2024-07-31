@@ -49,7 +49,7 @@ static class Model
         var model = new Transformer (modelArgs);
 
         Console.WriteLine ("loading checkpoint");
-        model.optimized_load_py (
+        model.load_weights (
             location: Path.Combine (modelFolder, modelWeightPath));
 
         model = model.to (device);

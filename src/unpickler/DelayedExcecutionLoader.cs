@@ -4,7 +4,7 @@ namespace llama.unpickler;
 
 static class DelayedExcecutionLoader
 {
-    public static void optimized_load_py (
+    public static void load_weights (
         this torch.nn.Module module,
         string location
     ) {
@@ -50,17 +50,26 @@ static class DelayedExcecutionLoader
 
                 var tObject = ((DelayedExecutionUnpickler.TensorStream)args[0]);
 
-                using torch.Tensor temp = torch
-                    .empty (shape, tObject.dtype)
-                    .as_strided (shape, stride, storageOffset);
-
                 using var stream = tObject.data;
-                temp.ReadBytesFromStream (stream);
-                stream.Close ();
+
+                if (tObject.dtype == dictionary[key].dtype) {
+                    // read directly into target.
+                    var target = dictionary[key];
+                    target
+                        .as_strided (shape, stride, storageOffset)
+                        .ReadBytesFromStream (stream);
+                    stream.Close ();
+                } else {
+                    // type conversion required. load onto cpu first before copying to target.
+                    using torch.Tensor temp = torch
+                        .empty (shape, tObject.dtype, device: torch.CPU)
+                        .as_strided (shape, stride, storageOffset);
+                    temp.ReadBytesFromStream (stream);
+                    stream.Close ();
+                    dictionary[key].copy_ (temp);
+                }
 
                 Console.WriteLine ($"loading {key} [{string.Join (",", shape)}] {tObject.dtype} -> {dictionary[key].dtype}");
-
-                dictionary[key].copy_ (temp);
             }
         }
     }

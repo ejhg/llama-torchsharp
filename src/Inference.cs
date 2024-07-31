@@ -42,13 +42,19 @@ static class Inference
             tokenLogProbs = torch.zeros (batch, totalLen, tokenizer.VocabSize, dtype: torch.float32, device: device);
         }
 
-        using var _ = torch.no_grad ();
+        using var no_grad = torch.no_grad ();
+        using var inference_mode = torch.inference_mode ();
 
         var prevPos = 0;
         var eosReached = torch.tensor (new bool[batch], device: device);
         var inputTextMask = tokens != tokenizer.PadId;
 
         for (int curPos = minPromptLen; curPos < totalLen; curPos++) {
+            Console.WriteLine ("tensors: " + torch.Tensor.TotalCount + "/" + torch.Tensor.PeakCount);
+
+            var stopWatch = new Stopwatch ();
+            stopWatch.Start ();
+
             var logits = transformer.forward (tokens[.., prevPos..curPos], prevPos);
 
             var nextToken = temperature > 0
@@ -66,10 +72,12 @@ static class Inference
                     target: tokens[.., (prevPos + 1) .. (curPos + 1)], reduction: torch.nn.Reduction.None, ignore_index: tokenizer.PadId);
             }
 
-            for (var i = 0; i < batch; i++) {
-                var toks = tokens[i][..(promptTokens[i].Length + maxGenLen)].data<long> ().Select (x => (int)x).ToArray ();
-                Console.WriteLine (i + ": " + string.Join (",", toks));
-                Console.WriteLine (i + ": " + tokenizer.Decode (toks));
+            if ((curPos - minPromptLen) % 5 == 0) {
+                for (var i = 0; i < batch; i++) {
+                    var toks = tokens[i][..(promptTokens[i].Length + maxGenLen)].data<long> ().Select (x => (int)x).ToArray ();
+                    Console.WriteLine (i + ": " + string.Join (",", toks));
+                    Console.WriteLine (i + ": " + tokenizer.Decode (toks));
+                }
             }
 
             eosReached |= (~inputTextMask[.., curPos]) & (nextToken == tokenizer.EosId);
@@ -78,6 +86,9 @@ static class Inference
             }
 
             prevPos = curPos;
+
+            stopWatch.Stop ();
+            Console.WriteLine ($"iteration {stopWatch.ElapsedMilliseconds} ms");
         }
 
         var outputTokens = new int[batch][];

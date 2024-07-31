@@ -29,13 +29,14 @@ public class Llama2Tokenizer : ITokenizer
         this.addPrecedingSpace = addPrecedingSpace;
         this.PadId = padToken;
 
+        var model = new Bpe (vocabPath, mergesPath);
         this.tokenizer = new Tokenizer (
-            new Bpe (vocabPath, mergesPath),
+            model,
             preTokenizer: new PreTokenizer (),
             normalizer: new Norm ()) {
             Decoder = new TokenizeDecoder (
-                this.tokenizer.Model.IdToToken (this.BosId)!,
-                this.tokenizer.Model.IdToToken (this.EosId)!)
+                model.IdToToken (this.BosId)!,
+                model.IdToToken (this.EosId)!)
         };
     }
 

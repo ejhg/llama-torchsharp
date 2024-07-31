@@ -7,7 +7,7 @@ var device = "cpu";
 
 torch.manual_seed (100);
 
-Console.WriteLine ("start");
+Console.WriteLine ("running on " + device);
 
 ITokenizer tokenizer = File.Exists ($"{weightsDir}/tokenizer.model")
     ? new Llama3Tokenizer (
