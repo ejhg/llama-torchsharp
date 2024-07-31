@@ -2,7 +2,7 @@ using TorchSharp;
 
 namespace llama.unpickler;
 
-static class DelayedExcecutionLoader
+static class DelayedExecutionLoader
 {
     public static void load_weights (
         this torch.nn.Module module,
