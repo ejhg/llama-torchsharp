@@ -50,6 +50,8 @@ static class Inference
         var inputTextMask = tokens != tokenizer.PadId;
 
         for (int curPos = minPromptLen; curPos < totalLen; curPos++) {
+            using var scope = torch.NewDisposeScope ();
+
             Console.WriteLine ("tensors: " + torch.Tensor.TotalCount + "/" + torch.Tensor.PeakCount);
 
             var stopWatch = new Stopwatch ();
@@ -80,7 +82,13 @@ static class Inference
                 }
             }
 
-            eosReached |= (~inputTextMask[.., curPos]) & (nextToken == tokenizer.EosId);
+            var newEosReached = eosReached | (~inputTextMask[.., curPos]) & (nextToken == tokenizer.EosId);
+
+            // replace eosReached tensor
+            eosReached.Dispose ();
+            eosReached = newEosReached;
+            scope.MoveToOuter (eosReached);
+
             if (eosReached.all ().item<bool> ()) {
                 break;
             }

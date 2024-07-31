@@ -21,6 +21,8 @@ public class EncoderBlock : torch.nn.Module<torch.Tensor, int, torch.Tensor, tor
     }
 
     public override torch.Tensor forward (torch.Tensor input, int startPos, torch.Tensor freqsComplex, torch.Tensor? mask) {
+        using var scope = torch.NewDisposeScope ();
+
         // (B, Seq_Len, Dim) + (B, Seq_Len, Dim) --> (B, Seq_Len, Dim)
         var x = this.attention_norm.forward (input);
         // (B, Seq_Len, Dim) -> (B, Seq_Len, Dim)
@@ -34,6 +36,6 @@ public class EncoderBlock : torch.nn.Module<torch.Tensor, int, torch.Tensor, tor
         // (B, Seq_Len, Dim) + (B, Seq_Len, Dim) -> (B, Seq_Len, Dim)
         x = x + h;
 
-        return x;
+        return scope.MoveToOuter (x);
     }
 }

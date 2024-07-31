@@ -29,6 +29,8 @@ public class FeedForward : torch.nn.Module<torch.Tensor, torch.Tensor>
     }
 
     public override torch.Tensor forward (torch.Tensor input) {
+        using var scope = torch.NewDisposeScope ();
+
         // (B, Seq_Len, Dim) -> (B, Seq_Len, Hidden_Dim)
         var swish = torch.nn.functional.silu (this.w1.forward (input));
         // (B, Seq_Len, Hidden_Dim) -> (B, Seq_Len, Dim)
@@ -38,6 +40,6 @@ public class FeedForward : torch.nn.Module<torch.Tensor, torch.Tensor>
         // (B, Seq_Len, Hidden_Dim) -> (B, Seq_Len, Dim)
         x = this.w2.forward (x);
 
-        return x;
+        return scope.MoveToOuter (x);
     }
 }

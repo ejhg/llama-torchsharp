@@ -18,12 +18,15 @@ public class RMSNorm : torch.nn.Module<torch.Tensor, torch.Tensor>
     }
 
     public override torch.Tensor forward (torch.Tensor input) {
+        using var scope = torch.NewDisposeScope ();
+
         var x = input
             // needs higher precision for the norm so convert to float32
             .to_type (torch.ScalarType.Float32, non_blocking: true);
         // (B, Seq_Len, Dim) * (B, Seq_Len, 1) = (B, Seq_Len, Dim)
         var normed = x * torch.rsqrt (x.pow (2).mean ([-1L], keepdim: true) + this._eps);
+
         // (B, Seq_Len, Dim) * (Dim) = (B, Seq_Len, Dim)
-        return this.weight * normed.to_type (input.dtype, non_blocking: true);
+        return scope.MoveToOuter (this.weight * normed.to_type (input.dtype, non_blocking: true));
     }
 }

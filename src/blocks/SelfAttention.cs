@@ -49,6 +49,8 @@ public class SelfAttention : torch.nn.Module<torch.Tensor, int, torch.Tensor, to
     }
 
     public override torch.Tensor forward (torch.Tensor input, int startPos, torch.Tensor freqsComplex, torch.Tensor? mask = null) {
+        using var scope = torch.NewDisposeScope ();
+
         int batchSize = (int)input.shape[0];
         int seqLen = (int)input.shape[1];
 
@@ -113,7 +115,7 @@ public class SelfAttention : torch.nn.Module<torch.Tensor, int, torch.Tensor, to
         // (B, Seq_Len, Dim) -> (B, Seq_Len, Dim)
         output = this.wo.forward (output);
 
-        return output;
+        return scope.MoveToOuter (output);
     }
 
     static torch.Tensor RepeatKV (torch.Tensor x, int nRep) {

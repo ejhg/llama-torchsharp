@@ -43,6 +43,8 @@ public class Transformer : nn.Module<Tensor, int, Tensor>
     }
 
     public override Tensor forward (Tensor tokens, int startPos) {
+        using var scope = NewDisposeScope ();
+
         // (B, Seq_Len) -> (B, Seq_Len, Dim)
         var seqLen = (int)tokens.shape[1];
 
@@ -76,9 +78,9 @@ public class Transformer : nn.Module<Tensor, int, Tensor>
 
         // (B, Seq_Len, Dim) -> (B, Seq_Len, Dim)
         h = this.norm.forward (h);
-        // (B, Seq_Len, Dim) -> (B, Seq_Len, Vocab_Size)
 
-        return this.output.forward (h);
+        // (B, Seq_Len, Dim) -> (B, Seq_Len, Vocab_Size)
+        return scope.MoveToOuter (this.output.forward (h));
     }
 
     Tensor PrecomputeThetaPosFrequencies (int headDim, int seqLen, float theta = 10000.0f) {
